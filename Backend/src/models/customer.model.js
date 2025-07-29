@@ -37,6 +37,10 @@ const CustomerSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    profileImage : {
+        type: String,
+        default: null,
+    },
 },{timestamps: true});
 
 const Customer = mongoose.model("Customer", CustomerSchema);

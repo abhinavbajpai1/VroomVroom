@@ -3,28 +3,37 @@ import express from 'express';
 import connectDB from './src/db/index.js';
 import cors from 'cors';
 
-const app=express();
+const app = express();
 
-dotenv.config(
-    {
-        path:'./.env'
-    }
-);
+dotenv.config({
+    path: './.env'
+});
 
 app.use(cors());
-
 app.use(express.json());
 
-import userRouter from './src/routes/user.router.js';
-app.use('/home',userRouter);
+// Serve static files
+app.use('/uploads', express.static('./public/images'));
 
-userRouter.use('/login/dashboard',express.static('./public/images'));
+// Import routes
+import userRouter from './src/routes/user.router.js';
+import authRouter from './src/routes/auth.router.js';
+import bikeRouter from './src/routes/bike.router.js';
+
+// API routes
+app.use('/api/user', userRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/bikes', bikeRouter);
+
+// Health check route
+app.get('/', (req, res) => {
+    res.json({ message: 'VroomVroom API is running' });
+});
 
 connectDB().then((result) => {
-    app.listen(process.env.PORT||8000,()=>{
-    console.log(`Server is runing at http://localhost:${process.env.PORT}`);
-})
+    app.listen(process.env.PORT || 8000, () => {
+        console.log(`Server is running at http://localhost:${process.env.PORT || 8000}`);
+    });
 }).catch((err) => {
-    console.log("Mongodb connection failed");
-    
+    console.log("MongoDB connection failed:", err);
 });

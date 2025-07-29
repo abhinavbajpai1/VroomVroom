@@ -1,26 +1,52 @@
 import mongoose from "mongoose";
 
 const BikeSchema = new mongoose.Schema({
-    bikeId :{
-        type : String,
-        required : true
+    bikeId: {
+        type: String,
+        required: true,
+        unique: true
     },
-    model :{
-        type : String,
-        required : true
+    name: {
+        type: String,
+        required: true
     },
-    type:{
-        type : String,
-        required : true
+    model: {
+        type: String,
+        required: true
     },
-    price :{
-        type : Number,
-        required : true
+    type: {
+        type: String,
+        required: true
     },
-    Available :{
-        type : Boolean,
-        required : true
+    year: {
+        type: Number,
+        required: true
+    },
+    price: {
+        type: Number,
+        required: true
+    },
+    available: {
+        type: Boolean,
+        required: true,
+        default: true
+    },
+    image: {
+        type: String,
+        default: null
+    },
+    description: {
+        type: String,
+        default: ""
+    },
+    fuelType: {
+        type: String,
+        default: "Petrol"
+    },
+    mileage: {
+        type: Number,
+        default: 0
     }
-},{timestamps:true});
+}, { timestamps: true });
 
-export default mongoose.model("Bike",BikeSchema);
+export default mongoose.model("Bike", BikeSchema);
