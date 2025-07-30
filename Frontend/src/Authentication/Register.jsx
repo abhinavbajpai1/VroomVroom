@@ -8,11 +8,13 @@ const Register = ({ onRegister }) => {
         email: '',
         password: '',
         confirmPassword: '',
+        phoneNumber: '',
         AddhaarNumber: '',
         panNumber: '',
         address: '',
         city: '',
-        state: ''
+        state: '',
+        role: 'customer'
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -42,11 +44,13 @@ const Register = ({ onRegister }) => {
                 lastName: formData.lastName,
                 email: formData.email,
                 password: formData.password,
+                phoneNumber: formData.phoneNumber,
                 AddhaarNumber: formData.AddhaarNumber,
                 panNumber: formData.panNumber,
                 address: formData.address,
                 city: formData.city,
-                state: formData.state
+                state: formData.state,
+                role: formData.role
             });
             
             // Store token in localStorage
@@ -114,6 +118,16 @@ const Register = ({ onRegister }) => {
                         
                         <input 
                             className="p-3 border border-gray-300 rounded" 
+                            type="tel" 
+                            name="phoneNumber"
+                            placeholder="Phone Number" 
+                            value={formData.phoneNumber}
+                            onChange={handleChange}
+                            required
+                        />
+                        
+                        <input 
+                            className="p-3 border border-gray-300 rounded" 
                             type="text" 
                             name="AddhaarNumber"
                             placeholder="Aadhaar Number" 
@@ -162,6 +176,17 @@ const Register = ({ onRegister }) => {
                                 required
                             />
                         </div>
+                        
+                        <select 
+                            className="p-3 border border-gray-300 rounded" 
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="customer">Customer</option>
+                            <option value="mechanic">Mechanic</option>
+                        </select>
                         
                         <input 
                             className="p-3 border border-gray-300 rounded" 

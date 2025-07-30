@@ -1,22 +1,22 @@
-import { Router } from "express";
+import express from "express";
 import { 
-    getAvailableBikes, 
     getAllBikes, 
-    getBikeById, 
     createBike, 
     updateBikeAvailability 
 } from "../controllers/bike.controller.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 
-const bikeRouter = Router();
+const bikeRouter = express.Router();
 
-// Public routes
-bikeRouter.get("/available", getAvailableBikes);
-bikeRouter.get("/:bikeId", getBikeById);
+// Upload route for bike images
+bikeRouter.post("/upload", upload.single('bikeImage'), (req, res) => {
+    res.json({ message: "File uploaded successfully", file: req.file });
+});
 
-// Protected routes
-bikeRouter.get("/", authenticateToken, getAllBikes);
-bikeRouter.post("/", authenticateToken, createBike);
-bikeRouter.put("/:bikeId/availability", authenticateToken, updateBikeAvailability);
+// Bike routes (protected)
+bikeRouter.get("/", verifyToken, getAllBikes);
+bikeRouter.post("/", verifyToken, createBike);
+bikeRouter.put("/:bikeId/availability", verifyToken, updateBikeAvailability);
 
 export default bikeRouter; 

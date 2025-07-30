@@ -9,11 +9,13 @@ export const register = async (req, res) => {
             lastName, 
             email, 
             password, 
+            phoneNumber,
             AddhaarNumber, 
             panNumber, 
             address, 
             city, 
-            state 
+            state,
+            role
         } = req.body;
 
         // Check if user already exists
@@ -28,18 +30,20 @@ export const register = async (req, res) => {
             lastName,
             email,
             password, // In production, hash this password
+            phoneNumber,
             AddhaarNumber,
             panNumber,
             address,
             city,
-            state
+            state,
+            role: role || 'customer'
         });
 
         await newUser.save();
 
         // Generate JWT token
         const token = jwt.sign(
-            { userId: newUser._id, email: newUser.email },
+            { userId: newUser._id, email: newUser.email, role: newUser.role },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
@@ -50,9 +54,11 @@ export const register = async (req, res) => {
             firstName: newUser.firstName,
             lastName: newUser.lastName,
             email: newUser.email,
+            phoneNumber: newUser.phoneNumber,
             address: newUser.address,
             city: newUser.city,
             state: newUser.state,
+            role: newUser.role,
             profileImage: newUser.profileImage
         };
 
@@ -87,7 +93,7 @@ export const login = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
+            { userId: user._id, email: user.email, role: user.role },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
@@ -98,9 +104,11 @@ export const login = async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
+            phoneNumber: user.phoneNumber,
             address: user.address,
             city: user.city,
             state: user.state,
+            role: user.role,
             profileImage: user.profileImage
         };
 

@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import Customer from "../models/customer.model.js";
 
-export const authenticateToken = async (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         const token = authHeader && authHeader.split(' ')[1];

@@ -17,6 +17,10 @@ const CustomerSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    phoneNumber: {
+        type: String,
+        required: true,
+    },
     AddhaarNumber : {
         type: String,
         required: true,
@@ -36,6 +40,11 @@ const CustomerSchema = new mongoose.Schema({
     state : {
         type: String,
         required: true,
+    },
+    role: {
+        type: String,
+        enum: ['customer', 'mechanic', 'admin'],
+        default: 'customer',
     },
     profileImage : {
         type: String,

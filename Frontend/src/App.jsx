@@ -4,6 +4,8 @@ import axios from 'axios';
 import Register from './Authentication/Register';
 import Login from './Authentication/Login';
 import Dashboard from './components/Dashboard';
+import MechanicDashboard from './components/MechanicDashboard';
+import ServiceRequestForm from './components/ServiceRequestForm';
 import Home from './components/Home';
 
 import './App.css'
@@ -49,6 +51,17 @@ function App() {
     setUser(null);
   };
 
+  // Render dashboard based on user role
+  const renderDashboard = () => {
+    if (!user) return null;
+    
+    if (user.role === 'mechanic') {
+      return <MechanicDashboard user={user} onLogout={handleLogout} />;
+    } else {
+      return <Dashboard user={user} onLogout={handleLogout} />;
+    }
+  };
+
   return (
     <Router>
       <div className="App">
@@ -81,8 +94,16 @@ function App() {
             path="/dashboard" 
             element={
               isAuthenticated ? 
-              <Dashboard user={user} onLogout={handleLogout} /> : 
+              renderDashboard() : 
               <Navigate to="/login" replace />
+            } 
+          />
+          <Route 
+            path="/service-request" 
+            element={
+              isAuthenticated && user?.role === 'customer' ? 
+              <ServiceRequestForm user={user} /> : 
+              <Navigate to="/dashboard" replace />
             } 
           />
         </Routes>

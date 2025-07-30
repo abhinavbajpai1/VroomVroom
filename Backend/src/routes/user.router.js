@@ -8,19 +8,19 @@ import {
     getDashboardStats 
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const userRouter = Router();
 
 // Dashboard routes (protected)
-userRouter.get("/profile/:userId", authenticateToken, getUserProfile);
-userRouter.get("/rentals/:userId", authenticateToken, getUserRentals);
-userRouter.get("/stats/:userId", authenticateToken, getDashboardStats);
+userRouter.get("/profile/:userId", verifyToken, getUserProfile);
+userRouter.get("/rentals/:userId", verifyToken, getUserRentals);
+userRouter.get("/stats/:userId", verifyToken, getDashboardStats);
 
 // Profile management routes (protected)
-userRouter.post("/upload-profile/:userId", authenticateToken, upload.single('profileImage'), uploadProfilePicture);
-userRouter.put("/profile/:userId", authenticateToken, updateUserProfile);
-userRouter.put("/change-password/:userId", authenticateToken, changePassword);
+userRouter.post("/upload-profile/:userId", verifyToken, upload.single('profileImage'), uploadProfilePicture);
+userRouter.put("/profile/:userId", verifyToken, updateUserProfile);
+userRouter.put("/change-password/:userId", verifyToken, changePassword);
 
 // Legacy routes
 userRouter.get("/", (req, res) => {

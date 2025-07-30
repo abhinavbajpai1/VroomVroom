@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = ({ user: propUser, onLogout }) => {
     const [user, setUser] = useState(propUser);
     const [rentals, setRentals] = useState([]);
+    const [serviceRequests, setServiceRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [profileImage, setProfileImage] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+    const navigate = useNavigate();
 
     // Fetch user data and rentals when component mounts
     useEffect(() => {
@@ -35,6 +38,16 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                     }
                 });
                 setRentals(rentalsResponse.data);
+
+                // Fetch service requests for customers
+                if (userResponse.data.role === 'customer') {
+                    const serviceRequestsResponse = await axios.get(`http://localhost:8000/api/service-requests/customer/${userResponse.data._id}`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    setServiceRequests(serviceRequestsResponse.data);
+                }
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 // Fallback to prop user data
@@ -112,6 +125,17 @@ const Dashboard = ({ user: propUser, onLogout }) => {
         }
     };
 
+    const getServiceRequestStatusColor = (status) => {
+        switch (status) {
+            case 'pending': return 'bg-yellow-100 text-yellow-800';
+            case 'assigned': return 'bg-blue-100 text-blue-800';
+            case 'in_progress': return 'bg-orange-100 text-orange-800';
+            case 'completed': return 'bg-green-100 text-green-800';
+            case 'cancelled': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -122,6 +146,10 @@ const Dashboard = ({ user: propUser, onLogout }) => {
 
     const isOverdue = (dueDate) => {
         return new Date(dueDate) < new Date();
+    };
+
+    const handleCreateServiceRequest = () => {
+        navigate('/service-request');
     };
 
     if (loading) {
@@ -156,7 +184,7 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                 {/* Navigation Tabs */}
                 <div className="border-b border-gray-200 mb-8">
                     <nav className="-mb-px flex space-x-8">
-                        {['overview', 'rentals', 'profile'].map((tab) => (
+                        {['overview', 'rentals', 'service-requests', 'profile'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -166,7 +194,7 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                             >
-                                {tab}
+                                {tab.replace('-', ' ')}
                             </button>
                         ))}
                     </nav>
@@ -179,9 +207,9 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-blue-100">
-                                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                         </svg>
                                     </div>
                                     <div className="ml-4">
@@ -193,68 +221,52 @@ const Dashboard = ({ user: propUser, onLogout }) => {
 
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-green-100">
-                                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <div className="p-3 rounded-full bg-green-100 text-green-600">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                         </svg>
                                     </div>
                                     <div className="ml-4">
                                         <p className="text-sm font-medium text-gray-600">Active Rentals</p>
                                         <p className="text-2xl font-semibold text-gray-900">
-                                            {rentals.filter(r => r.status === 'active').length}
+                                            {rentals.filter(rental => rental.status === 'active').length}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-lg shadow p-6">
-                                <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-yellow-100">
-                                        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                        </svg>
-                                    </div>
-                                    <div className="ml-4">
-                                        <p className="text-sm font-medium text-gray-600">Overdue</p>
-                                        <p className="text-2xl font-semibold text-gray-900">
-                                            {rentals.filter(r => r.status === 'active' && isOverdue(r.dueDate)).length}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Recent Activity */}
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-                            </div>
-                            <div className="p-6">
-                                <div className="space-y-4">
-                                    {rentals.slice(0, 3).map((rental) => (
-                                        <div key={rental.rentalId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{rental.vehicleName}</p>
-                                                    <p className="text-sm text-gray-600">Rental ID: {rental.rentalId}</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(rental.status)}`}>
-                                                    {rental.status}
-                                                </span>
-                                                <p className="text-sm text-gray-600 mt-1">₹{rental.total_cost}</p>
-                                            </div>
+                            {user?.role === 'customer' && (
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <div className="flex items-center">
+                                        <div className="p-3 rounded-full bg-orange-100 text-orange-600">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
                                         </div>
-                                    ))}
+                                        <div className="ml-4">
+                                            <p className="text-sm font-medium text-gray-600">Service Requests</p>
+                                            <p className="text-2xl font-semibold text-gray-900">{serviceRequests.length}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick Actions */}
+                        {user?.role === 'customer' && (
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                                <div className="flex space-x-4">
+                                    <button
+                                        onClick={handleCreateServiceRequest}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                                    >
+                                        Request Mechanic Service
+                                    </button>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -262,34 +274,50 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                 {activeTab === 'rentals' && (
                     <div className="bg-white rounded-lg shadow">
                         <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-medium text-gray-900">Rental History</h3>
+                            <h2 className="text-xl font-semibold text-gray-900">Rental History</h2>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rental ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Rental ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Vehicle
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Start Date
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            End Date
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Cost
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {rentals.map((rental) => (
-                                        <tr key={rental.rentalId} className={isOverdue(rental.dueDate) && rental.status === 'active' ? 'bg-red-50' : ''}>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{rental.rentalId}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{rental.vehicleName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(rental.rental_start)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(rental.rental_end)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <span className={isOverdue(rental.dueDate) && rental.status === 'active' ? 'text-red-600 font-semibold' : ''}>
-                                                    {formatDate(rental.dueDate)}
-                                                </span>
+                                        <tr key={rental.rentalId}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {rental.rentalId}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{rental.total_cost}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {rental.vehicleName}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {formatDate(rental.rental_start)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {formatDate(rental.rental_end)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                ₹{rental.total_cost}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(rental.status)}`}>
                                                     {rental.status}
@@ -303,120 +331,179 @@ const Dashboard = ({ user: propUser, onLogout }) => {
                     </div>
                 )}
 
+                {/* Service Requests Tab */}
+                {activeTab === 'service-requests' && user?.role === 'customer' && (
+                    <div className="bg-white rounded-lg shadow">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h2 className="text-xl font-semibold text-gray-900">Service Requests</h2>
+                            <button
+                                onClick={handleCreateServiceRequest}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                New Service Request
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Request ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Vehicle
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Service Type
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Assigned Mechanic
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Created Date
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {serviceRequests.map((request) => (
+                                        <tr key={request._id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {request.requestId}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {request.vehicleType} - {request.vehicleModel}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {request.serviceType}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getServiceRequestStatusColor(request.status)}`}>
+                                                    {request.status.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {request.assignedMechanicId ? 
+                                                    `${request.assignedMechanicId.firstName} ${request.assignedMechanicId.lastName}` : 
+                                                    'Not assigned'
+                                                }
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {formatDate(request.createdAt)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
                 {/* Profile Tab */}
                 {activeTab === 'profile' && (
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-lg shadow">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
-                            </div>
-                            <div className="p-6">
-                                <div className="flex items-center space-x-6">
-                                    <div className="relative">
-                                        <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                                            {profileImage || user?.profileImage ? (
-                                                <img 
-                                                    src={profileImage || user?.profileImage} 
-                                                    alt="Profile" 
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                    </svg>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleProfileImageUpload}
-                                                className="hidden"
-                                                disabled={uploading}
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Settings</h2>
+                        
+                        <div className="space-y-6">
+                            {/* Profile Image */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Profile Image
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                                        {user?.profileImage ? (
+                                            <img 
+                                                src={user.profileImage} 
+                                                alt="Profile" 
+                                                className="w-20 h-20 rounded-full object-cover"
                                             />
-                                        </label>
-                                        {uploading && (
-                                            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                                            </div>
+                                        ) : (
+                                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
                                         )}
                                     </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-xl font-semibold text-gray-900">{user?.firstName} {user?.lastName}</h4>
-                                        <p className="text-gray-600">{user?.email}</p>
-                                    </div>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleProfileImageUpload}
+                                        disabled={uploading}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    />
                                 </div>
+                                {uploading && <p className="text-sm text-gray-500 mt-2">Uploading...</p>}
+                            </div>
 
-                                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                                        <input
-                                            type="text"
-                                            value={user?.firstName || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                                        <input
-                                            type="text"
-                                            value={user?.lastName || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                        <input
-                                            type="email"
-                                            value={user?.email || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                                        <input
-                                            type="text"
-                                            value={user?.address || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                        <input
-                                            type="text"
-                                            value={user?.city || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                                        <input
-                                            type="text"
-                                            value={user?.state || ''}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            readOnly
-                                        />
-                                    </div>
+                            {/* User Information */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        First Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={user?.firstName || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
                                 </div>
-
-                                <div className="mt-8 flex space-x-4">
-                                    <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                                        Edit Profile
-                                    </button>
-                                    <button className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
-                                        Change Password
-                                    </button>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Last Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={user?.lastName || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={user?.email || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Phone Number
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={user?.phoneNumber || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Role
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={user?.role || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={user?.address || ''}
+                                        disabled
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                                    />
                                 </div>
                             </div>
                         </div>
