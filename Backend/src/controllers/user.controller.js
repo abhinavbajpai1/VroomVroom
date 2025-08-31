@@ -53,9 +53,15 @@ export const uploadProfilePicture = async (req, res) => {
     try {
         const { userId } = req.params;
         
+        console.log("Upload request received for user:", userId);
+        console.log("File info:", req.file);
+        
         if (!req.file) {
+            console.log("No file uploaded");
             return res.status(400).json({ message: "No file uploaded" });
         }
+        
+        console.log("Uploading to Cloudinary...");
         
         // Upload to Cloudinary
         const cloudinaryResponse = await cloudinary.uploader.upload(req.file.path, {
@@ -66,6 +72,8 @@ export const uploadProfilePicture = async (req, res) => {
             ]
         });
         
+        console.log("Cloudinary upload successful:", cloudinaryResponse.secure_url);
+        
         // Update user profile with new image URL
         const updatedUser = await Customer.findByIdAndUpdate(
             userId,
@@ -73,8 +81,17 @@ export const uploadProfilePicture = async (req, res) => {
             { new: true }
         ).select('-password');
         
+        if (!updatedUser) {
+            console.log("User not found:", userId);
+            return res.status(404).json({ message: "User not found" });
+        }
+        
         // Delete local file
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        
+        console.log("Profile picture updated successfully");
         
         res.status(200).json({
             message: "Profile picture uploaded successfully",
@@ -83,13 +100,17 @@ export const uploadProfilePicture = async (req, res) => {
         });
     } catch (error) {
         console.error("Error uploading profile picture:", error);
+        console.error("Error details:", error.message);
         
         // Clean up local file if it exists
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
         
-        res.status(500).json({ message: "Error uploading profile picture" });
+        res.status(500).json({ 
+            message: "Error uploading profile picture",
+            error: error.message 
+        });
     }
 };
 
